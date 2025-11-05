@@ -1,10 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { MenuItem } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Fix: Per coding guidelines, API key must be obtained from process.env.API_KEY. This also resolves the TypeScript error.
+const getAiClient = () => {
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
 
 export const fetchMenu = async (): Promise<MenuItem[]> => {
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: "Generează un meniu săptămânal (Luni - Vineri) pentru un serviciu de livrare de mâncare sănătoasă. Meniul este destinat atât adulților, cât și copiilor. Pentru fiecare zi, oferă un fel principal, o garnitură, o gustare, o descriere apetisantă, o listă de ingrediente cheie și informații nutriționale estimate (calorii, proteine, carbohidrați, grăsimi). Răspunde în limba română.",
@@ -64,6 +68,9 @@ export const fetchMenu = async (): Promise<MenuItem[]> => {
 
   } catch (error) {
     console.error("Error fetching menu from Gemini API:", error);
-    throw new Error("Nu am putut genera meniul. Te rugăm să încerci din nou mai târziu.");
+    if (error instanceof Error) {
+      throw new Error(`Nu am putut genera meniul: ${error.message}`);
+    }
+    throw new Error("A apărut o eroare la generarea meniului. Încearcă din nou mai târziu.");
   }
 };
