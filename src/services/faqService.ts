@@ -1,9 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { FAQItem } from '../types';
 
-// Fix: Per coding guidelines, API key must be obtained from process.env.API_KEY. This also resolves the TypeScript error.
 const getAiClient = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Fix: Use process.env.API_KEY as required by the coding guidelines, which resolves the TypeScript error.
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    // Fix: Update error message to reflect the correct environment variable.
+    throw new Error("Cheia API (API_KEY) nu este configurată în setările de deployment.");
+  }
+  return new GoogleGenAI({ apiKey });
 };
 
 export const fetchFaq = async (): Promise<FAQItem[]> => {
