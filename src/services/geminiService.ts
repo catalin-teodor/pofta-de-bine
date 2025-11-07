@@ -1,18 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { MenuItem } from '../types';
 
-// Fix: Updated API key retrieval to use process.env.API_KEY, aligning with coding guidelines and resolving the TypeScript error.
-const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable not set.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
-
 export const fetchMenu = async (): Promise<MenuItem[]> => {
   try {
-    const ai = getAiClient();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: "Generează un meniu săptămânal (Luni - Vineri) pentru un serviciu de livrare de mâncare sănătoasă. Meniul este destinat atât adulților, cât și copiilor. Pentru fiecare zi, oferă un fel principal, o garnitură, o gustare, o descriere apetisantă, o listă de ingrediente cheie și informații nutriționale estimate (calorii, proteine, carbohidrați, grăsimi). Răspunde în limba română.",

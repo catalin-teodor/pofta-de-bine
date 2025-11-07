@@ -1,18 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { FAQItem } from '../types';
 
-// Fix: Updated API key retrieval to use process.env.API_KEY, aligning with coding guidelines and resolving the TypeScript error.
-const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable not set.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
-
 export const fetchFaq = async (): Promise<FAQItem[]> => {
   try {
-    const ai = getAiClient();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: "Generează o listă de 5 întrebări frecvente (FAQ) pentru un serviciu de livrare de mâncare sănătoasă numit 'Pofta de Bine'. Include întrebări despre zonele de livrare, metode de plată, personalizarea comenzilor, ingrediente și ambalaje. Răspunde în limba română.",

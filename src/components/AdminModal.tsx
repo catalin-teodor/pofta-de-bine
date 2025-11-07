@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { MenuItem, Order, FAQItem } from '../types';
+import type { MenuItem, Order, FAQItem, TestimonialItem } from '../types';
 import { fetchMenu } from '../services/geminiService';
 import { fetchFaq } from '../services/faqService';
+import { fetchTestimonials } from '../services/testimonialService';
 import { CloseIcon, MagicWandIcon } from './IconComponents';
 
 interface AdminModalProps {
@@ -11,10 +12,12 @@ interface AdminModalProps {
   onSaveMenu: (newMenu: MenuItem[]) => void;
   currentFaqs: FAQItem[];
   onSaveFaq: (newFaqs: FAQItem[]) => void;
+  currentTestimonials: TestimonialItem[];
+  onSaveTestimonials: (newTestimonials: TestimonialItem[]) => void;
   onLogout: () => void;
 }
 
-type Tab = 'menu' | 'orders' | 'faq';
+type Tab = 'menu' | 'orders' | 'faq' | 'testimonials';
 
 const MenuEditor: React.FC<{ currentMenu: MenuItem[], onSave: (menu: MenuItem[]) => void }> = ({ currentMenu, onSave }) => {
   const [jsonText, setJsonText] = useState('');
@@ -118,13 +121,66 @@ const FAQEditor: React.FC<{ currentFaqs: FAQItem[], onSave: (faqs: FAQItem[]) =>
   );
 };
 
+const TestimonialEditor: React.FC<{ currentTestimonials: TestimonialItem[], onSave: (testimonials: TestimonialItem[]) => void }> = ({ currentTestimonials, onSave }) => {
+  const [jsonText, setJsonText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+   useEffect(() => {
+    setJsonText(JSON.stringify(currentTestimonials, null, 2));
+  }, [currentTestimonials]);
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const newTestimonials = await fetchTestimonials();
+      setJsonText(JSON.stringify(newTestimonials, null, 2));
+    } catch (err) {
+      setError('Eroare la generarea testimonialelor. Încearcă din nou.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSave = () => {
+    try {
+      setError(null);
+      const parsedTestimonials = JSON.parse(jsonText);
+      if (!Array.isArray(parsedTestimonials) || typeof parsedTestimonials[0]?.quote !== 'string') {
+          throw new Error("Formatul JSON nu este valid pentru Testimoniale.")
+      }
+      onSave(parsedTestimonials);
+    } catch (err) {
+      setError('Format JSON invalid. Verifică textul și încearcă din nou.');
+    }
+  };
+
+  return (
+    <>
+      {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert"><p>{error}</p></div>}
+      <label htmlFor="testimonialJson" className="block text-sm font-medium text-gray-700 mb-2">Editează Testimonialele (format JSON):</label>
+      <textarea id="testimonialJson" className="w-full h-96 p-3 font-mono text-sm bg-gray-50 border border-gray-300 rounded-md focus:ring-brand-green-dark focus:border-brand-green-dark" value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
+      <div className="mt-4 flex flex-wrap justify-between items-center gap-4">
+        <button onClick={handleGenerate} disabled={isGenerating} className="flex items-center space-x-2 bg-brand-green-light text-brand-green-dark font-semibold px-4 py-2 rounded-md hover:bg-opacity-80 transition-colors disabled:bg-gray-300 disabled:text-gray-500">
+          <MagicWandIcon className={`h-5 w-5 ${isGenerating ? 'animate-spin' : ''}`} />
+          <span>{isGenerating ? 'Se generează...' : 'Generează Testimoniale cu AI'}</span>
+        </button>
+        <button onClick={handleSave} className="bg-brand-green-dark text-white font-semibold px-6 py-2 rounded-md hover:bg-opacity-90 transition-transform transform hover:scale-105">Salvează Testimonialele</button>
+      </div>
+    </>
+  );
+};
+
 const OrdersDashboard: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
 
     useEffect(() => {
         const storedOrders = localStorage.getItem('orders');
         if (storedOrders) {
-            setOrders(JSON.parse(storedOrders).sort((a: Order, b: Order) => new Date(b.timestamp).valueOf() - new Date(a.timestamp).valueOf()));
+            // Fix: Explicitly convert Date objects to numbers using getTime() before subtraction.
+            // This resolves a potential TypeScript error where arithmetic operations on Date objects are disallowed.
+            setOrders(JSON.parse(storedOrders).sort((a: Order, b: Order) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
         }
     }, []);
 
@@ -191,7 +247,7 @@ const OrdersDashboard: React.FC = () => {
     );
 };
 
-const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, currentMenu, onSaveMenu, currentFaqs, onSaveFaq, onLogout }) => {
+const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, currentMenu, onSaveMenu, currentFaqs, onSaveFaq, currentTestimonials, onSaveTestimonials, onLogout }) => {
   const [activeTab, setActiveTab] = useState<Tab>('menu');
 
   useEffect(() => {
@@ -229,6 +285,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, currentMenu, o
             <TabButton tab="menu" label="Editare Meniu" />
             <TabButton tab="orders" label="Comenzi & Statistici" />
             <TabButton tab="faq" label="Editare FAQ" />
+            <TabButton tab="testimonials" label="Editare Testimoniale" />
           </div>
         </nav>
         
@@ -241,6 +298,9 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, currentMenu, o
           </div>
           <div role="tabpanel" hidden={activeTab !== 'faq'}>
             <FAQEditor currentFaqs={currentFaqs} onSave={onSaveFaq} />
+          </div>
+           <div role="tabpanel" hidden={activeTab !== 'testimonials'}>
+            <TestimonialEditor currentTestimonials={currentTestimonials} onSave={onSaveTestimonials} />
           </div>
         </main>
       </div>

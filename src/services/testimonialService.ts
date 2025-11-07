@@ -1,18 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { TestimonialItem } from '../types';
 
-// Fix: Updated API key retrieval to use process.env.API_KEY, aligning with coding guidelines and resolving the TypeScript error.
-const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable not set.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
-
 export const fetchTestimonials = async (): Promise<TestimonialItem[]> => {
   try {
-    const ai = getAiClient();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: "Generează o listă de 3 testimoniale credibile pentru un serviciu de livrare de mâncare sănătoasă numit 'Pofta de Bine'. Fiecare testimonial trebuie să includă o recenzie (quote), numele unui autor fictiv și un rating numeric între 4 și 5. Variază stilul recenziilor: una de la o mamă ocupată, una de la un profesionist din IT și una de la o persoană pasionată de fitness. Răspunde în limba română.",
